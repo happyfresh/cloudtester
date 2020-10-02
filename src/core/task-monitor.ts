@@ -1,8 +1,8 @@
 /* eslint-disable operator-linebreak */
 import * as AWS from 'aws-sdk';
 import { ConfigManager } from '../util/config-manager';
-import { LogManager } from '../util/log-manager';
-import * as moment from 'moment';
+import { LogManager } from '../util/log-manager/log-manager';
+import moment from 'moment';
 
 const log = LogManager.Instance;
 const config = ConfigManager.getConfigObject();

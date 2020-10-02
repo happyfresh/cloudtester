@@ -1,7 +1,7 @@
 import { flags } from '@oclif/command';
 import Command from '../base';
 import { CredentialManager } from '../util';
-import { LogManager } from '../util/log-manager';
+import { LogManager } from '../util/log-manager/log-manager';
 import { ConfigManager } from '../util/config-manager';
 import { TaskMonitor } from '../core/task-monitor';
 
@@ -52,7 +52,7 @@ hello world from ./src/hello.ts!
 
       logUpdate(`♥♥${frame} unicorns ${frame}♥♥`);
     }, 80); */
-    log.logTail('hello');
+    /* log.logTail('hello');
     for (let i = 0; i < 100; i++) {
       log.info('with tail ', i);
       // eslint-disable-next-line no-await-in-loop
@@ -63,6 +63,6 @@ hello world from ./src/hello.ts!
       log.info('without tail ', i);
       // eslint-disable-next-line no-await-in-loop
       await promiseTimeout(200);
-    }
+    } */
   }
 }

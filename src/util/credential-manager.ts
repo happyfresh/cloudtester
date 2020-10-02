@@ -1,4 +1,4 @@
-import { LogManager } from './log-manager';
+import { LogManager } from './log-manager/log-manager';
 import * as AWS from 'aws-sdk';
 import { CredentialsOptions } from 'aws-sdk/lib/credentials';
 

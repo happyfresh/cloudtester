@@ -1,6 +1,6 @@
-import { LogManager } from './log-manager';
+import { LogManager } from './log-manager/log-manager';
 import { config as dotenv } from 'dotenv';
-import * as convict from 'convict';
+import convict from 'convict';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 

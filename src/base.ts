@@ -1,6 +1,6 @@
 /* eslint-disable indent */
 import Command, { flags } from '@oclif/command';
-import { LogManager } from './util/log-manager';
+import { LogManager } from './util/log-manager/log-manager';
 import * as path from 'path';
 
 const log = LogManager.Instance;

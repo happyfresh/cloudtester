@@ -3,9 +3,11 @@
 /* eslint-disable operator-linebreak */
 import * as winston from 'winston';
 import * as AWS from 'aws-sdk';
-import * as moment from 'moment';
-import * as Table from 'cli-table3';
-import * as ansi from 'ansi';
+import moment from 'moment';
+import ansi from 'ansi';
+import { Example } from './ink-component';
+import { render } from 'ink';
+import React from 'react';
 
 export type Logger = winston.Logger;
 
@@ -134,6 +136,7 @@ export class LogManager {
 
     this._cursor.hide();
     // this._loggers.get('debug').on('data', (info) => {});
+    render(React.createElement(Example));
   }
 
   public static get Instance() {

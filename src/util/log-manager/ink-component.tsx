@@ -4,15 +4,15 @@ import { Box, Text, useStdout } from 'ink';
 export const Example = () => {
   const { stdout, write } = useStdout();
 
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      write('Hello from Ink to stdout\n');
-    }, 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+  /*   React.useEffect(() => {
+      const timer = setInterval(() => {
+        write('Hello from Ink to stdout\n');
+      }, 1000);
+  
+      return () => {
+        clearInterval(timer);
+      };
+    }, []); */
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>

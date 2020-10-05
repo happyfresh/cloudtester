@@ -4,6 +4,8 @@ import { CredentialManager } from '../util';
 import { LogManager } from '../util/log-manager/log-manager';
 import { ConfigManager } from '../util/config-manager';
 import { TaskMonitor } from '../core/task-monitor';
+import { TaskKiller, TaskAge } from '../core/task-killer';
+import { ApiCaller } from '../core/api-caller';
 
 const log = LogManager.Instance;
 const config = ConfigManager.getConfigObject();
@@ -33,36 +35,59 @@ hello world from ./src/hello.ts!
   async run() {
     const { flags } = this.parse(Begin);
 
+    const monitorRefreshInterval = config.get('monitor.refreshInterval');
+    const killRefreshInterval = config.get('terminate.refreshInterval');
+    const killInterval = config.get('terminate.killInterval');
+    const requestInterval = config.get('api.requestInterval');
+
     // load aws credentials
-    /* const envCreds = {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
-    }; */
     const credential = new CredentialManager();
     await credential.login();
 
-    /* const taskMonitor = new TaskMonitor();
+    const apiCaller = new ApiCaller();
+    const taskMonitor = new TaskMonitor();
+    const taskKiller = new TaskKiller();
+    apiCaller.printRequestTail();
+    taskMonitor.printTaskTail();
+    taskKiller.printKilledTaskTail();
+
     setInterval(async () => {
       await taskMonitor.refreshTaskList();
-      taskMonitor.printTaskList();
-    }, 5000); */
+      taskMonitor.printTaskTail();
+    }, monitorRefreshInterval);
 
-    /* setInterval(() => {
-      const frame = frames[(i = ++i % frames.length)];
+    setInterval(async () => {
+      const killedTasks = await taskKiller.killTask(
+        taskMonitor.getTasks(),
+        { age: TaskAge.OLDEST },
+        1
+      );
+      log.info('killed tasks :', killedTasks);
+      await taskKiller.refreshKillTaskStatus();
+      taskKiller.printKilledTaskTail();
+    }, killInterval);
 
-      logUpdate(`♥♥${frame} unicorns ${frame}♥♥`);
-    }, 80); */
-    /* log.logTail('hello');
-    for (let i = 0; i < 100; i++) {
-      log.info('with tail ', i);
-      // eslint-disable-next-line no-await-in-loop
-      await promiseTimeout(200);
-    }
-    log.clearTail();
-    for (let i = 0; i < 100; i++) {
-      log.info('without tail ', i);
-      // eslint-disable-next-line no-await-in-loop
-      await promiseTimeout(200);
-    } */
+    setInterval(async () => {
+      await taskKiller.refreshKillTaskStatus();
+      taskKiller.printKilledTaskTail();
+    }, killRefreshInterval);
+
+    setInterval(async () => {
+      await apiCaller.makeRequest();
+      apiCaller.printRequestTail();
+    }, requestInterval);
+
+    /*log.logTail('hobo\nhobo', 'hobo');
+    await promiseTimeout(1000);
+    log.logTail('hibo\nhobo', 'hobo');
+    await promiseTimeout(1000);
+    log.logTail('hibo\nhibo', 'hobo');
+    await promiseTimeout(1000);
+    log.logTail('ale\nale', 'ale');
+    await promiseTimeout(1000);
+    log.logTail('ala\nile', 'ale');
+    await promiseTimeout(1000);
+    log.logTail('ile\nile', 'ale');
+    await promiseTimeout(1000);*/
   }
 }

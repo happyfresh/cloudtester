@@ -1,11 +1,20 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-console */
+import React, { useState, useEffect } from 'react'
 import * as os from 'os';
-import { useStdout } from 'ink';
 import { LEVEL, MESSAGE } from 'triple-beam';
-import TransportStream from 'winston-transport';
+import TransportStream, { TransportStreamOptions } from 'winston-transport';
+import { useStderr, useStdout } from 'ink'
 
-export class Console extends TransportStream {
+interface InkTransportOptions extends TransportStreamOptions {
+  consoleWarnLevels?: string[],
+  stderrLevels?: string[];
+  debugStdout?: boolean;
+  eol?: string;
+  name?: string;
+}
+
+export class WinstonTransportInk extends TransportStream {
   private name: string;
 
   private stderrLevels: any;
@@ -14,20 +23,50 @@ export class Console extends TransportStream {
 
   private eol: string;
 
+  private stdout;
+
+  private writeOut;
+
+  private stderr;
+
+  private writeErr;
+
   /**
    * Constructor function for the Console transport object responsible for
    * persisting log messages and metadata to a terminal or TTY.
    * @param {!Object} [options={}] - Options for this instance.
    */
-  constructor(options: any = {}) {
+  constructor(options: InkTransportOptions = {}) {
     super(options);
     // Expose the name of this Transport on the prototype
     this.name = options.name || 'console';
-    this.stderrLevels = this._stringArrayToSet(options.stderrLevels);
-    this.consoleWarnLevels = this._stringArrayToSet(options.consoleWarnLevels);
+    this.stderrLevels = this._stringArrayToSet(options?.stderrLevels);
+    this.consoleWarnLevels = this._stringArrayToSet(options?.consoleWarnLevels);
     this.eol = (options.eol as string) || os.EOL;
 
     this.setMaxListeners(30);
+
+    const useOut = useStdout();
+    const useErr = useStderr();
+    this.stdout = useOut.stdout;
+    this.writeOut = useOut.write;
+
+    this.stderr = useErr.stderr;
+    this.writeErr = useErr.write;
+  }
+
+  public reactComponent = () => {
+    const { stdout, write } = useStdout();
+
+    React.useEffect(() => {
+      const timer = setInterval(() => {
+        write('Hello from Ink to stdout\n');
+      }, 1000);
+
+      return () => {
+        clearInterval(timer);
+      };
+    }, []);
   }
 
   /**
@@ -43,7 +82,7 @@ export class Console extends TransportStream {
     if (this.stderrLevels[info[LEVEL]]) {
       if (process.stderr) {
         // Node.js maps `process.stderr` to `console._stderr`.
-        process.stderr.write(`${info[MESSAGE]}${this.eol}`);
+        this.writeErr(`${info[MESSAGE]}${this.eol}`);
       } else {
         // console.error adds a newline
         console.error(info[MESSAGE]);
@@ -57,7 +96,7 @@ export class Console extends TransportStream {
       if (process.stderr) {
         // Node.js maps `process.stderr` to `console._stderr`.
         // in Node.js console.warn is an alias for console.error
-        process.stderr.write(`${info[MESSAGE]}${this.eol}`);
+        this.writeErr(`${info[MESSAGE]}${this.eol}`);
       } else {
         // console.warn adds a newline
         console.warn(info[MESSAGE]);
@@ -71,7 +110,7 @@ export class Console extends TransportStream {
 
     if (process.stdout) {
       // Node.js maps `process.stdout` to `console._stdout`.
-      process.stdout.write(`${info[MESSAGE]}${this.eol}`);
+      this.writeOut(`${info[MESSAGE]}${this.eol}`);
     } else {
       // console.log adds a newline.
       console.log(info[MESSAGE]);
@@ -90,7 +129,7 @@ export class Console extends TransportStream {
    * @returns {Object} - TODO: add return description.
    * @private
    */
-  _stringArrayToSet(strArray: Array<string>): object {
+  _stringArrayToSet(strArray: Array<string> | undefined): object {
     if (!strArray) return {};
 
     return strArray.reduce((set: any, el: string) => {

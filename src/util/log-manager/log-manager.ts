@@ -5,9 +5,10 @@ import * as winston from 'winston';
 import * as AWS from 'aws-sdk';
 import moment from 'moment';
 import ansi from 'ansi';
-import { Example } from './ink-component';
-import { render } from 'ink';
-import React from 'react';
+// import { Example } from './ink-component';
+// import { WinstonTransportInk } from './winston-transport-ink'
+// import { render } from 'ink';
+// import React from 'react';
 
 export type Logger = winston.Logger;
 
@@ -33,6 +34,13 @@ const formatMeta = (meta: any) => {
   return '';
 };
 
+const renderTail = (tail: string | null) => {
+  if (tail) {
+    return tail;
+  }
+  return '\r';
+};
+
 const formatMessage = (message: any) => {
   if (typeof message === 'string') {
     return message;
@@ -54,6 +62,8 @@ export class LogManager {
 
   private _tail: TailData;
 
+  private _tailMessages: Map<string, string> = new Map();
+
   private constructor() {
     this._loggers = new winston.Container();
     this._loggers.add('info', {
@@ -65,19 +75,25 @@ export class LogManager {
             return moment().format('YYYY-MM-DD HH:mm:ss');
           },
         }),
-        winston.format.printf(
-          ({ level, message, timestamp, ...meta }) =>
-            `${timestamp} ${level}: ${formatMessage(message)} ${formatMeta(
-              meta
-            )}`
-        )
+        winston.format.printf(({ level, message, timestamp, ...meta }) => {
+          let printed = `${timestamp} ${level}: ${formatMessage(
+            message
+          )} ${formatMeta(meta)}`;
+          if (this._tail.stringToRender) {
+            printed += `\n${renderTail(this._tail.stringToRender)}`;
+          } else {
+            printed += '\n';
+          }
+          return printed;
+        })
       ),
-      transports: [new winston.transports.Console({ eol: ' ' })],
+      transports: [new winston.transports.Console({ eol: '\r' })],
+      // transports: [new WinstonTransportInk()],
     });
     this._loggers.add('debug', {
       level: 'debug',
       format: winston.format.combine(
-        winston.format.errors({ stack: true }),
+        winston.format.errors({ stack: false }),
         winston.format.colorize(),
         winston.format.timestamp({
           format: () => {
@@ -86,24 +102,29 @@ export class LogManager {
         }),
         winston.format.printf(
           ({ level, message, timestamp, stack, ...meta }) => {
-            if (stack) {
-              // print log trace
-              return `${timestamp} ${level}: ${formatMessage(
-                message
-              )} ${formatMeta(meta)} - ${stack}`;
-            }
-            return `${timestamp} ${level}: ${formatMessage(
+            let printed = `${timestamp} ${level}: ${formatMessage(
               message
-            )} ${formatMeta(meta)}\n${this._tail.stringToRender}`;
+            )} ${formatMeta(meta)}`;
+            if (stack) {
+              printed += `- ${stack}`;
+            }
+            if (this._tail.stringToRender) {
+              printed += `\n${renderTail(this._tail.stringToRender)}`;
+            } else {
+              printed += '\n';
+            }
+            return printed;
           }
         )
       ),
-      transports: [new winston.transports.Console({ eol: ' ' })],
+      transports: [new winston.transports.Console({ eol: '\r' })],
+      // transports: [new WinstonTransportInk()],
     });
     this._loggers.add('outputDebug', {
       level: 'debug',
       format: winston.format.prettyPrint(),
-      transports: [new winston.transports.Console({ eol: ' ' })],
+      transports: [new winston.transports.Console({ eol: '\r' })],
+      // transports: [new WinstonTransportInk()],
     });
     this._loggers.add('jsonFile', {
       level: 'debug',
@@ -117,6 +138,7 @@ export class LogManager {
 
     if (process.env.NODE_ENV === 'development') {
       this._usedLogger = this._loggers.get('debug');
+      // TODO fix
       this._awsUsedLogger = this._loggers.get('debug');
     } else {
       this._usedLogger = this._loggers.get('info');
@@ -136,7 +158,7 @@ export class LogManager {
 
     this._cursor.hide();
     // this._loggers.get('debug').on('data', (info) => {});
-    render(React.createElement(Example));
+    // render(React.createElement(Example));
   }
 
   public static get Instance() {
@@ -177,7 +199,10 @@ export class LogManager {
     } else {
       this._loggers.get('outputDebug').info(message);
     }
-    this.renderTailCanvas();
+    if (this._tail.stringToRender !== null) {
+      this._cursor.write(`\n${this._tail.stringToRender} `);
+      this._tail.rendered = true;
+    }
   }
 
   /* public info(...args: any[]) {
@@ -185,6 +210,17 @@ export class LogManager {
     // eslint-disable-next-line no-useless-call
     return this._usedLogger.info.apply(this._usedLogger, [...argus]);
   } */
+  public awsDebug(message: string | any, ...meta: any | any[]) {
+    /* this.resetTailCanvas();
+    if (typeof meta === 'undefined') {
+      this._awsUsedLogger.debug(message);
+    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
+      this._awsUsedLogger.debug(message, meta);
+    } else {
+      this._awsUsedLogger.debug(message);
+    }
+    this.renderTailCanvas(); */
+  }
 
   public debug(message: string | any, ...meta: any | any[]) {
     this.resetTailCanvas();
@@ -242,9 +278,30 @@ export class LogManager {
     return this._awsUsedLogger;
   }
 
-  public logTail(message: string) {
-    this._tail.stringToRender = message;
-    const newLinesCount = message.split('\n').length;
+  public clearAllTailMessages() {
+    this._tailMessages.clear();
+  }
+
+  public removeTailMessage(key: string) {
+    this._tailMessages.delete(key);
+  }
+
+  public logTail(message: string, key = 'default') {
+    this._tailMessages.set(key, message);
+
+    let printMessage = '';
+    this._tailMessages.forEach((value) => {
+      printMessage += value + '\n';
+    });
+    printMessage = printMessage.slice(0, printMessage.length);
+    this._tail.stringToRender = printMessage;
+    const newLinesCount = printMessage.split('\n').length;
+
+    this.resetTailCanvas();
+    if (this._tail.stringToRender !== null) {
+      this._cursor.horizontalAbsolute().write(`${this._tail.stringToRender} `);
+      this._tail.rendered = true;
+    }
     this._tail.newLines = newLinesCount;
   }
 
@@ -257,18 +314,14 @@ export class LogManager {
 
   private renderTailCanvas() {
     if (this._tail.stringToRender !== null) {
-      // this._cursor.flush();
-      this._cursor.horizontalAbsolute().write(`${this._tail.stringToRender}`);
       this._tail.rendered = true;
     }
   }
 
   private resetTailCanvas() {
     if (this._tail.newLines && this._tail.rendered) {
-      if (this._tail.newLines === 1) {
-        this._cursor.horizontalAbsolute().eraseLine();
-      } else if (this._tail.newLines > 1) {
-        this._cursor.horizontalAbsolute().eraseLine();
+      this._cursor.horizontalAbsolute().eraseLine();
+      if (this._tail.newLines > 1) {
         for (let i = 0; i < this._tail.newLines - 1; i++) {
           this._cursor.previousLine().horizontalAbsolute().eraseLine();
         }
@@ -281,14 +334,12 @@ export class LogManager {
   }
 }
 
-const awsLogger = LogManager.Instance.getAwsLogger().child({
-  class: 'AWS',
-});
+const awsLogger = LogManager.Instance;
 
 class AWSWinstonAdapter {
   public static log(...args: [object]) {
     // eslint-disable-next-line no-useless-call
-    return awsLogger.debug.apply(awsLogger, [...args]);
+    return awsLogger.awsDebug.apply(awsLogger, [...args]);
   }
 }
 

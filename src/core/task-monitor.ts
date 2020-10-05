@@ -3,14 +3,17 @@ import * as AWS from 'aws-sdk';
 import { ConfigManager } from '../util/config-manager';
 import { LogManager } from '../util/log-manager/log-manager';
 import moment from 'moment';
+import Table from 'cli-table3';
 
 const log = LogManager.Instance;
 const config = ConfigManager.getConfigObject();
 
 export interface Task {
   arn: string;
-  lastsynced?: number;
-  startedAt?: number;
+  status: string;
+  lastsynced: number;
+  startedAt: number;
+  stoppedAt?: number;
 }
 
 export interface TaskDict {
@@ -26,6 +29,8 @@ export class TaskMonitor {
 
   private ecs: AWS.ECS;
 
+  private removeFromListThreshold = 20;
+
   constructor() {
     this.ecs = new AWS.ECS({
       apiVersion: 'latest',
@@ -34,20 +39,51 @@ export class TaskMonitor {
 
     this.serviceName = config.get('service');
     this.clusterName = config.get('cluster');
-    log.debug('Service Name : ', this.serviceName);
-    log.debug('Cluster Name : ', this.clusterName);
+    log.debug('Task Monitor Service Name : ', this.serviceName);
+    log.debug('Task Monitor Cluster Name : ', this.clusterName);
 
     this.tasks = {};
   }
 
-  public printTaskList() {
+  public printTaskJsonLog() {
     log.jsonDebug(this.tasks);
+  }
+
+  public printTaskTail() {
+    // instantiate
+    const table = new Table({
+      head: ['Task Id', 'Status', 'Started At', 'Stopped At', 'Last Sync'],
+      colWidths: [20, 20, 20, 20, 20],
+    });
+
+    const taskIds = Object.keys(this.tasks);
+
+    taskIds.forEach((element) => {
+      let stoppedAt = 'N/A';
+      if (this.tasks[element].stoppedAt) {
+        stoppedAt = moment(this.tasks[element].stoppedAt)
+          .startOf('second')
+          .fromNow();
+      }
+      table.push([
+        element,
+        this.tasks[element].status,
+        moment(this.tasks[element].startedAt).startOf('second').fromNow(),
+        stoppedAt,
+        moment(this.tasks[element].lastsynced).format('HH:MM:ss'),
+      ]);
+    });
+
+    log.logTail(table.toString(), 'Task Monitor');
   }
 
   public async refreshTaskList() {
     const taskList = await this.getTaskList();
 
     const taskData = await this.getTaskInfo(taskList);
+
+    // clear and reset tasks list
+    this.tasks = {};
 
     taskData.forEach((value) => {
       const arn = value?.taskArn;
@@ -58,16 +94,26 @@ export class TaskMonitor {
           : undefined;
 
       if (id && arn) {
+        let stoppedValue = undefined;
+        if (value.stoppedAt) {
+          stoppedValue = moment(value.stoppedAt).valueOf();
+        }
         this.tasks[id] = {
           arn: arn,
+          status: value?.lastStatus || 'UNFETCHED',
           lastsynced: moment.now(),
           startedAt: moment(value.startedAt).valueOf(),
+          stoppedAt: stoppedValue,
         };
       }
     });
   }
 
-  public async getTaskList(): Promise<Array<string>> {
+  public getTasks() {
+    return this.tasks;
+  }
+
+  private async getTaskList(): Promise<Array<string>> {
     // check number of task running for service
 
     const params: AWS.ECS.ListTasksRequest = {
@@ -87,7 +133,7 @@ export class TaskMonitor {
     }
   }
 
-  public async getTaskInfo(taskArns: Array<string>): Promise<AWS.ECS.Tasks> {
+  private async getTaskInfo(taskArns: Array<string>): Promise<AWS.ECS.Tasks> {
     const params = {
       tasks: taskArns,
       cluster: this.clusterName,

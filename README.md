@@ -15,11 +15,11 @@ cloudtester
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g cloudtester
+$ npm install -g @happyfresh/cloudtester
 $ cloudtester COMMAND
 running command...
 $ cloudtester (-v|--version|version)
-cloudtester/0.0.2 linux-x64 node-v14.10.1
+@happyfresh/cloudtester/0.0.2 linux-x64 node-v14.10.1
 $ cloudtester --help [COMMAND]
 USAGE
   $ cloudtester COMMAND

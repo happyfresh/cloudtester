@@ -4,7 +4,6 @@ import convict from 'convict';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import FileHound from 'filehound';
 import * as envPaths from 'env-paths';
 
 const configSchema = {

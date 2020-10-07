@@ -20,8 +20,7 @@ export default class TaskKill extends Command {
   static description = 'describe the command here';
 
   static examples = [
-    `$ cloudtester begin
-hello world from ./src/hello.ts!
+    `$ cloudtester task-kill
 `,
   ];
 

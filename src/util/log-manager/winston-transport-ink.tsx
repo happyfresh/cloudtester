@@ -1,13 +1,27 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-console */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react';
 import * as os from 'os';
 import { LEVEL, MESSAGE } from 'triple-beam';
 import TransportStream, { TransportStreamOptions } from 'winston-transport';
-import { useStderr, useStdout } from 'ink'
+import { Box, Newline, Text, useStderr, useStdout } from 'ink';
+import EventEmitter from 'events';
+
+const eventEmitter = new EventEmitter();
+
+const Emitter = {
+  on: (event: string, fn: any) => eventEmitter.on(event, fn),
+  once: (event: string, fn: any) => eventEmitter.once(event, fn),
+  off: (event: string, fn: any) => eventEmitter.off(event, fn),
+  emit: (event: string, payload: any) => eventEmitter.emit(event, payload),
+  removeListener: (event: string, fn: any) =>
+    eventEmitter.removeListener(event, fn),
+};
+
+Object.freeze(Emitter);
 
 interface InkTransportOptions extends TransportStreamOptions {
-  consoleWarnLevels?: string[],
+  consoleWarnLevels?: string[];
   stderrLevels?: string[];
   debugStdout?: boolean;
   eol?: string;
@@ -23,14 +37,6 @@ export class WinstonTransportInk extends TransportStream {
 
   private eol: string;
 
-  private stdout;
-
-  private writeOut;
-
-  private stderr;
-
-  private writeErr;
-
   /**
    * Constructor function for the Console transport object responsible for
    * persisting log messages and metadata to a terminal or TTY.
@@ -39,34 +45,16 @@ export class WinstonTransportInk extends TransportStream {
   constructor(options: InkTransportOptions = {}) {
     super(options);
     // Expose the name of this Transport on the prototype
-    this.name = options.name || 'console';
+    this.name = options.name || 'ink';
     this.stderrLevels = this._stringArrayToSet(options?.stderrLevels);
     this.consoleWarnLevels = this._stringArrayToSet(options?.consoleWarnLevels);
     this.eol = (options.eol as string) || os.EOL;
 
     this.setMaxListeners(30);
-
-    const useOut = useStdout();
-    const useErr = useStderr();
-    this.stdout = useOut.stdout;
-    this.writeOut = useOut.write;
-
-    this.stderr = useErr.stderr;
-    this.writeErr = useErr.write;
   }
 
-  public reactComponent = () => {
-    const { stdout, write } = useStdout();
-
-    React.useEffect(() => {
-      const timer = setInterval(() => {
-        write('Hello from Ink to stdout\n');
-      }, 1000);
-
-      return () => {
-        clearInterval(timer);
-      };
-    }, []);
+  logTail(message: string) {
+    Emitter.emit('writeTail', message);
   }
 
   /**
@@ -79,10 +67,12 @@ export class WinstonTransportInk extends TransportStream {
     setImmediate(() => this.emit('logged', info));
 
     // Remark: what if there is no raw...?
+    const infoLevel = info[LEVEL];
     if (this.stderrLevels[info[LEVEL]]) {
       if (process.stderr) {
         // Node.js maps `process.stderr` to `console._stderr`.
-        this.writeErr(`${info[MESSAGE]}${this.eol}`);
+        const message = `${info[MESSAGE]}${this.eol}`;
+        setImmediate(() => Emitter.emit('writeErr', message));
       } else {
         // console.error adds a newline
         console.error(info[MESSAGE]);
@@ -96,7 +86,8 @@ export class WinstonTransportInk extends TransportStream {
       if (process.stderr) {
         // Node.js maps `process.stderr` to `console._stderr`.
         // in Node.js console.warn is an alias for console.error
-        this.writeErr(`${info[MESSAGE]}${this.eol}`);
+        const message = `${info[MESSAGE]}${this.eol}`;
+        setImmediate(() => Emitter.emit('writeErr', message));
       } else {
         // console.warn adds a newline
         console.warn(info[MESSAGE]);
@@ -110,7 +101,8 @@ export class WinstonTransportInk extends TransportStream {
 
     if (process.stdout) {
       // Node.js maps `process.stdout` to `console._stdout`.
-      this.writeOut(`${info[MESSAGE]}${this.eol}`);
+      const message = `${info[MESSAGE]}${this.eol}`;
+      setImmediate(() => Emitter.emit('writeOut', message));
     } else {
       // console.log adds a newline.
       console.log(info[MESSAGE]);
@@ -139,3 +131,63 @@ export class WinstonTransportInk extends TransportStream {
     }, {});
   }
 }
+
+export const winstonInkReactComponent = () => {
+  const [outString, setOutString] = useState('');
+  const [errString, setErrString] = useState('');
+  const [tailString, setTailString] = useState('');
+  const { write: writeOut } = useStdout();
+  const { write: writeErr } = useStderr();
+
+  const handleWriteOut = (message: string) => {
+    // writeOut(message);
+    setOutString(message);
+    writeOut(message);
+  };
+
+  const handleWriteErr = (message: string) => {
+    // writeErr(message);
+    setErrString(message);
+    writeErr(message);
+  };
+
+  const handleWriteTail = (message: string) => {
+    setTailString(message);
+  };
+
+  useEffect(() => {
+    // add listeners
+    Emitter.on('writeOut', handleWriteOut);
+    Emitter.on('writeErr', handleWriteErr);
+    Emitter.on('writeTail', handleWriteTail);
+    return () => {
+      // remove listeners
+      Emitter.removeListener('writeOut', handleWriteOut);
+      Emitter.removeListener('writeError', handleWriteErr);
+      Emitter.removeListener('writeTail', handleWriteTail);
+    };
+  }, []);
+
+  return (
+    <Box flexDirection="column" paddingX={2} paddingY={1}>
+      <Text bold underline>
+        Status Visualization:
+      </Text>
+
+      <Box marginTop={1}>
+        <Text>
+          <Text>
+            Last Log : {outString}
+            {errString}
+          </Text>
+          <Newline />
+          <Text>
+            Tail :
+            <Newline />
+            {tailString}
+          </Text>
+        </Text>
+      </Box>
+    </Box>
+  );
+};

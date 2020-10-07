@@ -52,7 +52,7 @@ export class ApiCaller {
         result: result,
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.info(event.state, event.body);
     });
 
     this.circuit.on('timeout', (error) => {
@@ -63,7 +63,7 @@ export class ApiCaller {
         result: error,
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.warn(event.state, event.body);
     });
 
     this.circuit.on('reject', (error) => {
@@ -74,7 +74,7 @@ export class ApiCaller {
         result: error,
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.warn(event.state, event.body);
     });
 
     this.circuit.on('open', () => {
@@ -84,7 +84,7 @@ export class ApiCaller {
         timeStamp: moment.now(),
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.warn(event.state, event.body);
     });
 
     this.circuit.on('halfOpen', () => {
@@ -94,7 +94,7 @@ export class ApiCaller {
         timeStamp: moment.now(),
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.warn(event.state, event.body);
     });
 
     this.circuit.on('close', () => {
@@ -104,7 +104,7 @@ export class ApiCaller {
         timeStamp: moment.now(),
       };
       this.addRequestHistory(event);
-      log.verbose(event.state, event.body);
+      log.info(event.state, event.body);
     });
 
     /*this.circuit.on('fallback', (data) => {

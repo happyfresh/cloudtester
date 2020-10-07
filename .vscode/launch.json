@@ -7,9 +7,9 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "begin",
+      "name": "task-kill",
       "program": "${workspaceFolder}/bin/run",
-      "args": ["begin"],
+      "args": ["task-kill"],
       "sourceMaps": true,
       "cwd": "${workspaceRoot}",
       "protocol": "inspector",

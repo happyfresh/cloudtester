@@ -4,24 +4,14 @@
 import * as winston from 'winston';
 import * as AWS from 'aws-sdk';
 import moment from 'moment';
-import ansi from 'ansi';
-// import { Example } from './ink-component';
-// import { WinstonTransportInk } from './winston-transport-ink'
-// import { render } from 'ink';
-// import React from 'react';
+import {
+  WinstonTransportInk,
+  winstonInkReactComponent,
+} from './winston-transport-ink';
+import { render } from 'ink';
+import React from 'react';
 
 export type Logger = winston.Logger;
-
-interface LoggerDict {
-  [key: string]: Logger;
-}
-
-interface TailData {
-  newLines: number | null;
-  stringToRender: string | null;
-  rendered: boolean;
-  cleared: boolean;
-}
 
 const formatMeta = (meta: any) => {
   // You can format the splat yourself
@@ -32,13 +22,6 @@ const formatMeta = (meta: any) => {
       : JSON.stringify(splat);
   }
   return '';
-};
-
-const renderTail = (tail: string | null) => {
-  if (tail) {
-    return tail;
-  }
-  return '\r';
 };
 
 const formatMessage = (message: any) => {
@@ -58,11 +41,11 @@ export class LogManager {
 
   private _awsUsedLogger: Logger;
 
-  private _cursor = ansi(process.stdout);
-
-  private _tail: TailData;
-
   private _tailMessages: Map<string, string> = new Map();
+
+  private _winstonInkTransport = new WinstonTransportInk();
+
+  private _initialized = false;
 
   private constructor() {
     this._loggers = new winston.Container();
@@ -79,16 +62,10 @@ export class LogManager {
           let printed = `${timestamp} ${level}: ${formatMessage(
             message
           )} ${formatMeta(meta)}`;
-          if (this._tail.stringToRender) {
-            printed += `\n${renderTail(this._tail.stringToRender)}`;
-          } else {
-            printed += '\n';
-          }
           return printed;
         })
       ),
-      transports: [new winston.transports.Console({ eol: '\r' })],
-      // transports: [new WinstonTransportInk()],
+      transports: [new WinstonTransportInk()],
     });
     this._loggers.add('debug', {
       level: 'debug',
@@ -108,23 +85,17 @@ export class LogManager {
             if (stack) {
               printed += `- ${stack}`;
             }
-            if (this._tail.stringToRender) {
-              printed += `\n${renderTail(this._tail.stringToRender)}`;
-            } else {
-              printed += '\n';
-            }
             return printed;
           }
         )
       ),
-      transports: [new winston.transports.Console({ eol: '\r' })],
-      // transports: [new WinstonTransportInk()],
+      // transports: [new winston.transports.Console()],
+      transports: [new WinstonTransportInk()],
     });
     this._loggers.add('outputDebug', {
       level: 'debug',
       format: winston.format.prettyPrint(),
-      transports: [new winston.transports.Console({ eol: '\r' })],
-      // transports: [new WinstonTransportInk()],
+      transports: [new WinstonTransportInk()],
     });
     this._loggers.add('jsonFile', {
       level: 'debug',
@@ -138,36 +109,28 @@ export class LogManager {
 
     if (process.env.NODE_ENV === 'development') {
       this._usedLogger = this._loggers.get('debug');
-      // TODO fix
       this._awsUsedLogger = this._loggers.get('debug');
     } else {
       this._usedLogger = this._loggers.get('info');
       this._awsUsedLogger = this._loggers.get('info');
     }
 
-    this._tail = {
-      newLines: null,
-      stringToRender: null,
-      rendered: false,
-      cleared: false,
-    };
-
-    const console = new winston.transports.Console();
-
-    winston.add(console);
-
-    this._cursor.hide();
-    // this._loggers.get('debug').on('data', (info) => {});
-    // render(React.createElement(Example));
+    const ink = render(React.createElement(winstonInkReactComponent));
+    ink.rerender(React.createElement(winstonInkReactComponent));
   }
 
   public static get Instance() {
     // eslint-disable-next-line no-return-assign
-    return this._instance || (this._instance = new this());
+    const instance = this._instance || (this._instance = new this());
+    return instance;
   }
 
   public get loggers(): winston.Container {
     return this._loggers;
+  }
+
+  public get initialized() {
+    return this._initialized;
   }
 
   public setLogger(loggerName: string) {
@@ -179,29 +142,18 @@ export class LogManager {
   }
 
   public info(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._usedLogger.info(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._usedLogger.info(message, meta);
     } else {
-      this._usedLogger.info(message);
+      this._usedLogger.info(message, meta);
     }
-    this.renderTailCanvas();
   }
 
   public jsonDebug(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._loggers.get('outputDebug').info(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._loggers.get('outputDebug').info(message, meta);
     } else {
-      this._loggers.get('outputDebug').info(message);
-    }
-    if (this._tail.stringToRender !== null) {
-      this._cursor.write(`\n${this._tail.stringToRender} `);
-      this._tail.rendered = true;
+      this._loggers.get('outputDebug').info(message, meta);
     }
   }
 
@@ -223,51 +175,35 @@ export class LogManager {
   }
 
   public debug(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._usedLogger.debug(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._usedLogger.debug(message, meta);
     } else {
-      this._usedLogger.debug(message);
+      this._usedLogger.debug(message, meta);
     }
-    this.renderTailCanvas();
   }
 
   public warn(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._usedLogger.warn(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._usedLogger.warn(message, meta);
     } else {
-      this._usedLogger.warn(message);
+      this._usedLogger.warn(message, meta);
     }
-    this.renderTailCanvas();
   }
 
   public verbose(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._usedLogger.verbose(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._usedLogger.verbose(message, meta);
     } else {
-      this._usedLogger.verbose(message);
+      this._usedLogger.verbose(message, meta);
     }
-    this.renderTailCanvas();
   }
 
   public error(message: string | any, ...meta: any | any[]) {
-    this.resetTailCanvas();
-    if (typeof meta === 'undefined') {
+    if (meta.length === 0) {
       this._usedLogger.error(message);
-    } else if (typeof message === 'string' && typeof meta !== 'undefined') {
-      this._usedLogger.error(message, meta);
     } else {
-      this._usedLogger.error(message);
+      this._usedLogger.error(message, meta);
     }
-    this.renderTailCanvas();
   }
 
   public setAwsLogger(loggerName: string) {
@@ -294,43 +230,7 @@ export class LogManager {
       printMessage += value + '\n';
     });
     printMessage = printMessage.slice(0, printMessage.length);
-    this._tail.stringToRender = printMessage;
-    const newLinesCount = printMessage.split('\n').length;
-
-    this.resetTailCanvas();
-    if (this._tail.stringToRender !== null) {
-      this._cursor.horizontalAbsolute().write(`${this._tail.stringToRender} `);
-      this._tail.rendered = true;
-    }
-    this._tail.newLines = newLinesCount;
-  }
-
-  public clearTail() {
-    this._tail.stringToRender = null;
-    this._tail.newLines = null;
-    this._tail.rendered = false;
-    this._tail.cleared = true;
-  }
-
-  private renderTailCanvas() {
-    if (this._tail.stringToRender !== null) {
-      this._tail.rendered = true;
-    }
-  }
-
-  private resetTailCanvas() {
-    if (this._tail.newLines && this._tail.rendered) {
-      this._cursor.horizontalAbsolute().eraseLine();
-      if (this._tail.newLines > 1) {
-        for (let i = 0; i < this._tail.newLines - 1; i++) {
-          this._cursor.previousLine().horizontalAbsolute().eraseLine();
-        }
-      }
-    }
-    if (this._tail.cleared) {
-      this._cursor.horizontalAbsolute().eraseLine();
-      this._tail.cleared = false;
-    }
+    this._winstonInkTransport.logTail(printMessage);
   }
 }
 
@@ -344,3 +244,5 @@ class AWSWinstonAdapter {
 }
 
 AWS.config.logger = AWSWinstonAdapter;
+
+export const log = LogManager.Instance;

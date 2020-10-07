@@ -1,11 +1,9 @@
-import { LogManager } from './log-manager/log-manager';
+import { log } from './log-manager/log-manager';
 import { config as dotenv } from 'dotenv';
 import convict from 'convict';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-
-const log = LogManager.Instance;
 
 const configSchema = {
   env: {

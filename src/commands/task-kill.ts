@@ -16,7 +16,7 @@ function promiseTimeout(delayms: number) {
   });
 }
 
-export default class Begin extends Command {
+export default class TaskKill extends Command {
   static description = 'describe the command here';
 
   static examples = [
@@ -33,7 +33,7 @@ hello world from ./src/hello.ts!
   static args = [];
 
   async run() {
-    const { flags } = this.parse(Begin);
+    const { flags } = this.parse(TaskKill);
 
     const monitorRefreshInterval = config.get('monitor.refreshInterval');
     const killRefreshInterval = config.get('terminate.refreshInterval');
@@ -77,17 +77,28 @@ hello world from ./src/hello.ts!
       apiCaller.printRequestTail();
     }, requestInterval);
 
-    /*log.logTail('hobo\nhobo', 'hobo');
+    /*
+    log.logTail('hobo\nhobo', 'hobo');
+    log.info('1');
+    log.info({ interesting: 'thing' });
     await promiseTimeout(1000);
     log.logTail('hibo\nhobo', 'hobo');
+    log.info('2');
     await promiseTimeout(1000);
     log.logTail('hibo\nhibo', 'hobo');
+    log.info('3');
     await promiseTimeout(1000);
     log.logTail('ale\nale', 'ale');
+    log.info('4');
     await promiseTimeout(1000);
     log.logTail('ala\nile', 'ale');
+    log.info('5');
+    console.log('aloha');
     await promiseTimeout(1000);
     log.logTail('ile\nile', 'ale');
-    await promiseTimeout(1000);*/
+    log.info('6');
+    await promiseTimeout(1000);
+
+    log.info('7'); */
   }
 }

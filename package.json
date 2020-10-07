@@ -1,8 +1,9 @@
 {
-  "name": "cloudtester",
+  "name": "@happyfresh/cloudtester",
   "version": "0.0.2",
   "bin": {
-    "cloudtester": "./bin/run"
+    "cloudtester": "./bin/run",
+    "@happyfresh/cloudtester": "./bin/run"
   },
   "bugs": "https://github.com/happyfresh/cloudtester/issues",
   "dependencies": {
@@ -12,7 +13,7 @@
     "@types/ansi": "^0.3.2",
     "@types/convict": "^5.2.1",
     "@types/dotenv": "^8.2.0",
-    "@types/fs-extra": "^9.0.1",
+    "@types/env-paths": "^2.1.0",
     "@types/ink": "^2.0.3",
     "@types/js-yaml": "^3.12.5",
     "@types/opossum": "^4.1.1",
@@ -24,6 +25,8 @@
     "cli-table3": "^0.6.0",
     "convict": "^6.0.0",
     "dotenv": "^8.2.0",
+    "env-paths": "^2.2.0",
+    "filehound": "^1.17.4",
     "fs-extra": "^9.0.1",
     "ink": "^3.0.7",
     "js-yaml": "^3.14.0",
@@ -45,7 +48,7 @@
     "typescript": "^3.9.7"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=14.0.0"
   },
   "files": [
     "/bin",

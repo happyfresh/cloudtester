@@ -1,9 +1,9 @@
 import { LogManager } from './log-manager/log-manager';
 import * as AWS from 'aws-sdk';
 import { CredentialsOptions } from 'aws-sdk/lib/credentials';
-import { ensureFile } from 'fs-extra'
-import path from 'path'
-import os from 'os'
+import { ensureFile } from 'fs-extra';
+import path from 'path';
+import os from 'os';
 
 const log = LogManager.Instance;
 
@@ -49,15 +49,19 @@ export class CredentialManager {
   }
 
   public async login() {
-    const defaultCredentialFile = path.resolve(os.homedir(), '.aws', 'credentials')
-    const defaultAWSConfigFile = path.resolve(os.homedir(), '.aws', 'config')
+    const defaultCredentialFile = path.resolve(
+      os.homedir(),
+      '.aws',
+      'credentials'
+    );
+    const defaultAWSConfigFile = path.resolve(os.homedir(), '.aws', 'config');
     try {
-      await ensureFile(defaultCredentialFile)
-      log.debug('ensured file exists :', defaultCredentialFile)
-      await ensureFile(defaultAWSConfigFile)
-      log.debug('ensured file exists :', defaultAWSConfigFile)
+      await ensureFile(defaultCredentialFile);
+      log.debug('ensured file exists :', defaultCredentialFile);
+      await ensureFile(defaultAWSConfigFile);
+      log.debug('ensured file exists :', defaultAWSConfigFile);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
 
     try {

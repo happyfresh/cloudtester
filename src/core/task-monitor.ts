@@ -34,7 +34,6 @@ export class TaskMonitor {
   constructor() {
     this.ecs = new AWS.ECS({
       apiVersion: 'latest',
-      region: 'ap-southeast-1',
     });
 
     this.serviceName = config.get('service');

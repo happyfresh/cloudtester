@@ -97,15 +97,6 @@ export class LogManager {
       format: winston.format.prettyPrint(),
       transports: [new WinstonTransportInk()],
     });
-    this._loggers.add('jsonFile', {
-      level: 'debug',
-      format: winston.format.json(),
-      transports: [
-        new winston.transports.File({
-          filename: 'network.json',
-        }),
-      ],
-    });
 
     if (process.env.NODE_ENV === 'development') {
       this._usedLogger = this._loggers.get('debug');

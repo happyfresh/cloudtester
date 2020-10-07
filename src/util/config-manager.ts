@@ -4,6 +4,8 @@ import convict from 'convict';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
+import FileHound from 'filehound';
+import * as envPaths from 'env-paths';
 
 const configSchema = {
   env: {
@@ -88,8 +90,16 @@ export class ConfigManager {
   private constructor() {
     convict.addParser({ extension: ['yml', 'yaml'], parse: yaml.safeLoad });
 
+    // environment file loading rules
+    // 1. .env file in current working directory upto a depth of 2
+    // 2. .config/cloudtester/.env
+    // 3. Shared Credentials File
+
     // load env variables from .env file
-    const envFile = this.recursiveParentSearch('config', 'staging.env');
+
+    const envFileWithFolder = this.recursiveParentSearch('config', '.env');
+    const envFileWithoutFolder = this.recursiveParentSearch('./', '.env');
+    const envFile = envFileWithFolder || envFileWithoutFolder;
     if (envFile) {
       log.info('using environment file', envFile);
       dotenv({ path: envFile });
@@ -97,7 +107,15 @@ export class ConfigManager {
       log.info('no environment file found');
     }
 
-    const configFile = this.recursiveParentSearch('config', 'config.yaml');
+    const configFileWithFolder = this.recursiveParentSearch(
+      'config',
+      'config.yaml'
+    );
+    const configFileWithoutFolder = this.recursiveParentSearch(
+      './',
+      'config.yaml'
+    );
+    const configFile = configFileWithFolder || configFileWithoutFolder;
     if (configFile) {
       log.info('using config file', configFile);
       this.config.loadFile(configFile);

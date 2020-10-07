@@ -48,6 +48,7 @@ hello world from ./src/hello.ts!
     const taskMonitor = new TaskMonitor();
     const taskKiller = new TaskKiller();
     apiCaller.printRequestTail();
+    await taskMonitor.refreshTaskList();
     taskMonitor.printTaskTail();
     taskKiller.printKilledTaskTail();
 
@@ -76,29 +77,5 @@ hello world from ./src/hello.ts!
       await apiCaller.makeRequest();
       apiCaller.printRequestTail();
     }, requestInterval);
-
-    /*
-    log.logTail('hobo\nhobo', 'hobo');
-    log.info('1');
-    log.info({ interesting: 'thing' });
-    await promiseTimeout(1000);
-    log.logTail('hibo\nhobo', 'hobo');
-    log.info('2');
-    await promiseTimeout(1000);
-    log.logTail('hibo\nhibo', 'hobo');
-    log.info('3');
-    await promiseTimeout(1000);
-    log.logTail('ale\nale', 'ale');
-    log.info('4');
-    await promiseTimeout(1000);
-    log.logTail('ala\nile', 'ale');
-    log.info('5');
-    console.log('aloha');
-    await promiseTimeout(1000);
-    log.logTail('ile\nile', 'ale');
-    log.info('6');
-    await promiseTimeout(1000);
-
-    log.info('7'); */
   }
 }

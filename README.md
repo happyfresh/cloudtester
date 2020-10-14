@@ -4,9 +4,9 @@ cloudtester
 
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![Version](https://img.shields.io/npm/v/cloudtester.svg)](https://npmjs.org/package/cloudtester)
-[![Downloads/week](https://img.shields.io/npm/dw/cloudtester.svg)](https://npmjs.org/package/cloudtester)
-[![License](https://img.shields.io/npm/l/cloudtester.svg)](https://github.com/happy/cloudtester/blob/master/package.json)
+[![Version](https://img.shields.io/npm/v/@happyfresh/cloudtester.svg)](https://npmjs.org/package/@happyfresh/cloudtester)
+[![Downloads/week](https://img.shields.io/npm/dw/@happyfresh/cloudtester.svg)](https://npmjs.org/package/@happyfresh/cloudtester)
+[![License](https://img.shields.io/npm/l/@happyfresh/cloudtester.svg)](https://github.com/happyfresh/cloudtester/blob/master/@happyfresh/package.json)
 
 <!-- toc -->
 * [Usage](#usage)

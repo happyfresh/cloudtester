@@ -1,0 +1,15 @@
+service: 'xxx'
+cluster: 'xxx'
+monitor:
+  refreshInterval: 5000
+terminate:
+  killInterval: 30000
+  refreshInterval: 5000
+  minimumTasks: 1
+api:
+  endpoint: 'https://xxx.com'
+  requestInterval: 1000
+  circuitBreaker:
+    timeout: 500
+    errorThresholdPercentage: 50
+    resetTimeout: 5000
